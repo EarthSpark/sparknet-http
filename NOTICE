@@ -1,0 +1,52 @@
+sparknet-http distribution repository
+Copyright (c) 2026 EarthSpark Meter Ops LLC
+
+================================================================================
+Two different licenses apply to the contents of this repository and to the
+artifacts it distributes. Read this file before redistributing either.
+================================================================================
+
+1. PACKAGING SOURCES -- Apache License 2.0
+
+   The files tracked in this repository are licensed under the Apache License,
+   Version 2.0 (see LICENSE). Each carries an SPDX-License-Identifier header:
+
+     Dockerfile
+     build.sh
+     docker-entrypoint.sh
+     .github/workflows/build-image.yml
+
+   README.md and this NOTICE are documentation for the same packaging and are
+   offered under the same terms.
+
+2. sparknet-http BINARIES -- proprietary, NOT Apache-2.0
+
+   The compiled sparknet-http server binaries are NOT covered by the Apache
+   License, Version 2.0, and no rights in them are granted by that license.
+   They are proprietary software of EarthSpark Meter Ops LLC, licensed only
+   under the End User License Agreement in EULA.txt. This applies to every
+   sparknet-http binary, for every operating system and CPU architecture, in
+   every form in which it is distributed, including:
+
+     - every binary asset attached to a GitHub release of this repository,
+       whatever its target platform (Linux, macOS, or any other) and whether
+       or not it is wrapped into a container image;
+     - the /usr/local/bin/sparknet-http layer of the container images
+       published to ghcr.io/earthspark/sparknet-http.
+
+   The source code for the sparknet-http service is not published and is not
+   licensed under the Apache License, Version 2.0.
+
+   The Apache License, Version 2.0 grants rights, including the patent license
+   in its section 3, only over the works identified in section 1 above. No
+   copyright license, patent license, or other right in the sparknet-http
+   binaries or in the SparkNet protocol implementation is granted by that
+   license, by the presence of the LICENSE file in this repository, or by the
+   distribution of the binaries alongside Apache-2.0 packaging.
+
+3. THIRD-PARTY COMPONENTS IN THE CONTAINER IMAGE
+
+   The published container image also contains third-party software under its
+   own terms, including BusyBox under the GNU General Public License, version
+   2. See THIRD-PARTY-NOTICES.txt, which includes the written offer for
+   corresponding source required by that license.

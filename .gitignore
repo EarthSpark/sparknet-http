@@ -1,0 +1,5 @@
+# Server binaries staged into the build context by CI (from release assets)
+binaries/
+
+# OS
+.DS_Store

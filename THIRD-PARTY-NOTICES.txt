@@ -1,0 +1,54 @@
+THIRD-PARTY NOTICES
+sparknet-http container images (ghcr.io/earthspark/sparknet-http)
+
+These notices cover third-party software redistributed inside the container
+images published by EarthSpark Meter Ops LLC. They do not apply to the
+sparknet-http binaries themselves, which are proprietary and licensed under
+EULA.txt, nor to the Apache-2.0 packaging in this repository (see NOTICE).
+
+
+================================================================================
+BusyBox -- GNU General Public License, version 2
+================================================================================
+
+The image is built on the busybox:musl base image and therefore redistributes
+BusyBox, which provides /bin/sh for the container entrypoint and wget for the
+healthcheck. BusyBox is copyright its respective authors and is licensed under
+the GNU General Public License, version 2. The full license text is available
+at:
+
+    https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+
+BusyBox is a separate program. It is aggregated with the sparknet-http binary
+on a storage volume; the sparknet-http binary is statically linked, does not
+link against BusyBox, and is invoked as a separate process. That aggregation
+does not place the sparknet-http binary under the GNU General Public License.
+
+
+WRITTEN OFFER FOR CORRESPONDING SOURCE
+
+For a period of three (3) years from the date of distribution of any container
+image containing BusyBox, EarthSpark Meter Ops LLC will give any third party,
+for a charge no more than its cost of physically performing source
+distribution, a complete machine-readable copy of the corresponding source code
+for the version of BusyBox contained in that image, to be distributed under the
+terms of the GNU General Public License, version 2.
+
+To request the corresponding source, open an issue at:
+
+    https://github.com/EarthSpark/sparknet-http/issues
+
+State the image tag or digest you received, so the exact BusyBox version can be
+identified. This offer is valid to anyone who receives the image, whether or not
+they obtained it directly from EarthSpark Meter Ops LLC.
+
+
+================================================================================
+musl libc -- MIT License
+================================================================================
+
+The busybox:musl base image links BusyBox against musl libc, which is copyright
+Rich Felker and contributors and is licensed under the MIT License. The full
+license text is available at:
+
+    https://git.musl-libc.org/cgit/musl/tree/COPYRIGHT

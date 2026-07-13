@@ -1,0 +1,120 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2026 EarthSpark Meter Ops LLC
+name: build-image
+
+# Builds and pushes the sparknet-http container image from the Linux server
+# binaries attached to a release (raw binary assets named sparknet-http-linux-<arch>).
+#
+# workflow_dispatch builds from a given release tag; release:published builds
+# automatically when a release is created.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build the image from (e.g. v1.2.3)
+        required: true
+
+permissions:
+  # contents: write so the license documents can be attached to the release
+  # alongside the binaries.
+  contents: write
+  packages: write
+
+env:
+  IMAGE: ghcr.io/earthspark/sparknet-http
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Resolve release and image tags
+        id: rel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ github.event.release.tag_name || inputs.tag }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          # A prerelease moves :beta; a stable release moves :latest.
+          if [ "$(gh release view "$TAG" --repo "${{ github.repository }}" --json isPrerelease --jq .isPrerelease)" = "true" ]; then
+            moving=beta
+          else
+            moving=latest
+          fi
+          {
+            echo "tags<<EOF"
+            echo "$IMAGE:${TAG#v}"
+            echo "$IMAGE:$moving"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # Each sparknet-http-linux-<arch> release asset becomes one image platform,
+      # staged at binaries/<docker-arch>/sparknet-http for the Dockerfile's
+      # per-platform COPY. Assets not matching that name are skipped.
+      - name: Stage server binaries and resolve platforms
+        id: stage
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.rel.outputs.tag }}"
+          platforms=""
+          for name in $(gh release view "$TAG" --repo "${{ github.repository }}" \
+              --json assets --jq '.assets[].name | select(startswith("sparknet-http-linux-"))'); do
+            case "${name#sparknet-http-linux-}" in
+              x86_64)        arch=amd64; platform=linux/amd64 ;;
+              aarch64|arm64) arch=arm64; platform=linux/arm64 ;;
+              armv7|armhf)   arch=arm;   platform=linux/arm/v7 ;;
+              *) echo "::error::unmapped arch in release asset '$name'"; exit 1 ;;
+            esac
+            mkdir -p "binaries/$arch"
+            gh release download "$TAG" --repo "${{ github.repository }}" \
+              --pattern "$name" --output "binaries/$arch/sparknet-http"
+            chmod +x "binaries/$arch/sparknet-http"
+            platforms="${platforms:+$platforms,}$platform"
+          done
+          if [ -z "$platforms" ]; then
+            echo "::error::no sparknet-http-linux-* binaries in release $TAG"; exit 1
+          fi
+          echo "platforms=$platforms" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v4
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: ${{ steps.stage.outputs.platforms }}
+          push: true
+          tags: ${{ steps.rel.outputs.tags }}
+          # LABELs in the Dockerfile land on the per-arch image configs; the
+          # manifest list that the multi-arch tag actually points at carries no
+          # labels of its own, so the same licensing metadata is annotated onto
+          # it here. Without this, a registry UI or scanner reading the tag sees
+          # nothing and falls back to inferring Apache-2.0 from the repository.
+          annotations: |
+            manifest:org.opencontainers.image.licenses=LicenseRef-EarthSpark-sparknet-http-EULA
+            manifest:org.opencontainers.image.vendor=EarthSpark Meter Ops LLC
+            manifest:org.opencontainers.image.title=sparknet-http
+            manifest:org.opencontainers.image.source=https://github.com/EarthSpark/sparknet-http
+
+      # Recipients who take the bare binaries never pull the image, so the terms
+      # covering those binaries are attached to the release as well. --clobber
+      # keeps re-runs idempotent.
+      - name: Attach license documents to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ steps.rel.outputs.tag }}" \
+            EULA.txt NOTICE THIRD-PARTY-NOTICES.txt LICENSE \
+            --repo "${{ github.repository }}" --clobber
