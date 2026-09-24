@@ -13,7 +13,6 @@ artifacts it distributes. Read this file before redistributing either.
 
      Dockerfile
      build.sh
-     docker-entrypoint.sh
      .github/workflows/build-image.yml
 
    README.md and this NOTICE are documentation for the same packaging and are

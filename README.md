@@ -149,27 +149,34 @@ POST /v1/shutdown
 
 Published to `ghcr.io/earthspark/sparknet-http`.
 Every build gets the release version tag; stable releases also move `latest`, prereleases move `beta`.
-The image is a statically-linked server binary on `busybox:musl` — a minimal base that provides `/bin/sh` for the entrypoint and `wget` for the healthcheck.
+The image is a statically-linked server binary on `busybox:musl` — a minimal base that provides `wget` for the healthcheck.
+The entrypoint is the binary itself.
 
 ### Configuration (environment variables)
 
-The entrypoint (`docker-entrypoint.sh`) translates `SPARKNET_HTTP_*` environment variables into the binary's CLI flags, so callers configure the service declaratively — no `command:` needed.
-Explicit args passed to the container override the env mapping entirely.
+The binary reads `SPARKNET_HTTP_*` environment variables directly; each stands in for the CLI flag of the same name, and an explicit flag passed as the container command takes precedence over the variable.
+The image sets `SPARKNET_HTTP_BIND=0.0.0.0:8080` and `SPARKNET_HTTP_GRPC_BIND=0.0.0.0:50051`; without a bind address the binary serves neither interface.
 
 | env var | flag | notes |
 |---|---|---|
-| `SPARKNET_HTTP_BIND` | `--bind` | default `0.0.0.0:8080` (entrypoint default; the binary's own default is localhost-only) |
-| `SPARKNET_HTTP_SIMULATE_GATEWAY` | `--simulate-gateway` | truthy (`1`/`true`/`yes`/`on`); when set, the device/reset/bootloader vars are ignored |
+| `SPARKNET_HTTP_BIND` | `--http-bind` | image default `0.0.0.0:8080` |
+| `SPARKNET_HTTP_GRPC_BIND` | `--grpc-bind` | image default `0.0.0.0:50051` |
+| `SPARKNET_HTTP_SIMULATE_GATEWAY` | `--simulate-gateway` | truthy (`1`/`true`/`yes`/`on`) |
 | `SPARKNET_HTTP_DEVICE` | `--device` | serial device (must also be passed into the container) |
-| `SPARKNET_HTTP_GATEWAY_TYPE` | `--gateway-type` | `rsrm` / `firefly` / `detect` / `emulator` |
+| `SPARKNET_HTTP_GATEWAY_TYPE` | `--gateway-type` | `rsrm` / `firefly` / `emulator` |
 | `SPARKNET_HTTP_RESET_METHOD` | `--reset-method` | `gpio:<state>,<pin>` / `dtr` / `rts` |
 | `SPARKNET_HTTP_BOOTLOADER_METHOD` | `--bootloader-method` | same modes |
 | `SPARKNET_HTTP_BAUD` | `--baud` | |
 | `SPARKNET_HTTP_HEARTBEAT` | `--heartbeat` | |
-| `SPARKNET_HTTP_STATE_FILE` | `--state-file` | |
+| `SPARKNET_HTTP_READING_RETRY_LIMIT` | `--reading-retry-limit` | |
 | `SPARKNET_HTTP_FORCE_UPDATE` | `--force-update` | truthy |
 
 For a real gateway, set `SPARKNET_HTTP_DEVICE` and pass that serial device into the container; otherwise set `SPARKNET_HTTP_SIMULATE_GATEWAY`.
+
+The legacy interface reads the binary's stdin and the process exits with status 1 when stdin reaches end-of-file, which is what a non-interactive container gets.
+Run the container with stdin kept open: `docker run -i`, or `stdin_open: true` in compose.
+
+The healthcheck route is `GET /v1/healthz`.
 
 ## Building & publishing the image
 
@@ -184,7 +191,7 @@ For a local single-arch test build, stage a binary and run `bash build.sh` (env 
 Two licenses apply here, and the split matters if you redistribute anything.
 
 **The packaging in this repository is [Apache-2.0](LICENSE).**
-That covers the `Dockerfile`, `build.sh`, `docker-entrypoint.sh`, the workflow, and this README — each source file carries an `SPDX-License-Identifier: Apache-2.0` header.
+That covers the `Dockerfile`, `build.sh`, the workflow, and this README — each source file carries an `SPDX-License-Identifier: Apache-2.0` header.
 
 **The `sparknet-http` binaries are not.**
 They are proprietary software of EarthSpark Meter Ops LLC, licensed only under [EULA.txt](EULA.txt).
